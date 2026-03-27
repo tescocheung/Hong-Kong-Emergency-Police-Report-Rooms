@@ -1,181 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hong Kong Emergency & Police Report Rooms</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <style>
-        body {
-            padding: 0;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        html, body, #map {
-            height: 100%;
-            width: 100vw;
-        }
-        .custom-popup .leaflet-popup-content-wrapper {
-            border-radius: 4px;
-        }
-        .popup-title.hospital {
-            font-weight: bold;
-            font-size: 14px;
-            color: #d9534f; /* Emergency Red */
-            margin-bottom: 5px;
-        }
-        .popup-title.police {
-            font-weight: bold;
-            font-size: 14px;
-            color: #0275d8; /* Police Blue */
-            margin-bottom: 5px;
-        }
-        .popup-info {
-            font-size: 12px;
-            margin: 2px 0;
-        }
-        
-        /* Map Legend Styling */
-        .map-legend {
-            position: absolute;
-            bottom: 30px;
-            left: 10px;
-            background: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            font-size: 13px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .legend-icon {
-            width: 15px;
-            height: 15px;
-            margin-right: 10px;
-            border: 2px solid white;
-            box-shadow: 0 0 4px rgba(0,0,0,0.5);
-        }
-        .hospital-icon { background-color: #d9534f; border-radius: 50%; }
-        .police-icon { background-color: #0275d8; border-radius: 2px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hong Kong Emergency & Police Report Rooms</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { padding: 0; margin: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; }
+    html, body, #map { height: 100%; width: 100vw; }
+
+    .custom-popup .leaflet-popup-content-wrapper { border-radius: 6px; box-shadow: 0 3px 14px rgba(0,0,0,0.4); }
+    .popup-title { font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+    .popup-title.hospital { color: #d9534f; }
+    .popup-title.police { color: #0275d8; }
+    .popup-info { font-size: 13px; margin: 4px 0; color: #333; }
+
+    .map-legend {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      background: white;
+      padding: 12px 18px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      z-index: 1000;
+      font-size: 14px;
+      font-weight: bold;
+      color: #444;
+      user-select: none;
+    }
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-icon { width: 16px; height: 16px; margin-right: 12px; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.6); }
+    .hospital-icon { background-color: #d9534f; border-radius: 50%; }
+    .police-icon { background-color: #0275d8; border-radius: 3px; }
+
+    .map-toolbar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      z-index: 1000;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn.primary { background: #111827; color: #fff; border-color: #111827; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      color: #111827;
+    }
+    .hint { font-size: 12px; font-weight: 600; color: #374151; max-width: 520px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 800; font-size: 11px; background: #f3f4f6; border: 1px solid #e5e7eb; padding: 1px 6px; border-radius: 999px; }
+  </style>
 </head>
 <body>
+  <div id="map"></div>
 
-    <div id="map"></div>
-    
-    <div class="map-legend">
-        <div class="legend-item">
-            <div class="legend-icon hospital-icon"></div>
-            <span>A&E Hospital</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-icon police-icon"></div>
-            <span>Police Report Room</span>
-        </div>
+  <div class="map-toolbar">
+    <label class="toggle">
+      <input id="editToggle" type="checkbox" />
+      Edit pins
+    </label>
+    <button id="exportBtn" class="btn primary" disabled>Export corrected JSON</button>
+    <span class="hint">
+      Tip: turn on <span class="kbd">Edit pins</span>, drag any marker to the exact entrance, then export.
+    </span>
+  </div>
+
+  <div class="map-legend">
+    <div class="legend-item">
+      <div class="legend-icon hospital-icon"></div>
+      <span>24h A&amp;E Hospital</span>
     </div>
+    <div class="legend-item">
+      <div class="legend-icon police-icon"></div>
+      <span>Police Report Room</span>
+    </div>
+  </div>
 
-    <script>
-        // Initialize map centered on Hong Kong
-        var map = L.map('map').setView([22.3193, 114.1694], 11);
+  <script>
+    // Why some pins look inaccurate:
+    // - Hard-coded lat/lng may be approximate (POI centroid), not the entrance/footprint.
+    // - Different sources can use different coordinate systems (HK80 grid vs WGS84 lat/lng).
+    // This page includes an edit workflow so you can drag pins to the correct spot and export updated coordinates.
 
-        // Map Tiles: Replace this URL with a local tile directory or offline tile server if strictly offline
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+    // Initialize map centered on Hong Kong
+    var map = L.map('map').setView([22.3193, 114.1694], 11);
 
-        // --- CUSTOM ICONS ---
-        // Red Circle for Hospitals
-        var hospitalIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: "<div class='legend-icon hospital-icon' style='margin:0;'></div>",
-            iconSize: [19, 19],
-            iconAnchor: [9.5, 9.5]
+    // Online tiles (replace with local tiles for true offline usage)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // --- CUSTOM ICONS ---
+    var hospitalIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: "<div class='legend-icon hospital-icon' style='margin:0;'></div>",
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+    var policeIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: "<div class='legend-icon police-icon' style='margin:0;'></div>",
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
+    });
+
+    // --- DATA ARRAYS (your current coordinates) ---
+    var aeHospitals = [
+      { name: "Alice Ho Miu Ling Nethersole Hospital", address: "11 Chuen On Road, Tai Po", lat: 22.461207140833515, lng: 114.17455673217775 },
+      { name: "Caritas Medical Centre", address: "111 Wing Hong Street, Sham Shui Po", lat: 22.341561730920574, lng: 114.15339410305025 },
+      { name: "Kwong Wah Hospital", address: "25 Waterloo Road, KLN", lat: 22.31514295816939, lng: 114.17206764221193 },
+      { name: "North District Hospital", address: "9 Po Kin Road, Sheung Shui", lat: 22.496757515782896, lng: 114.12421703338624 },
+      { name: "North Lantau Hospital", address: "8 Chung Yan Road, Tung Chung", lat: 22.28233583344055, lng: 113.93928408622743 },
+      { name: "Pamela Youde Nethersole Eastern Hospital", address: "3 Lok Man Road, Chai Wan", lat: 22.270223541743007, lng: 114.23676252365114 },
+      { name: "Pok Oi Hospital", address: "Au Tau, Yuen Long", lat: 22.445421674155398, lng: 114.04158353805543 },
+      { name: "Prince of Wales Hospital", address: "30-32 Ngan Shing Street, Shatin", lat: 22.379642794971225, lng: 114.20219421386719 },
+      { name: "Princess Margaret Hospital", address: "2-10 Princess Margaret Hospital Road", lat: 22.342702925027186, lng: 114.13361549377443 },
+      { name: "Queen Elizabeth Hospital", address: "30 Gascoigne Road, KLN", lat: 22.30904866205753, lng: 114.17436361312868 },
+      { name: "Queen Mary Hospital", address: "102 Pokfulam Road, HK", lat: 22.269876042488452, lng: 114.13121223449708 },
+      { name: "Ruttonjee Hospital", address: "266 Queen's Road East, Wan Chai", lat: 22.275525280465285, lng: 114.17503952980043 },
+      { name: "St. John Hospital", address: "Cheung Chau Hospital Road, Cheung Chau", lat: 22.208155, lng: 114.031534 },
+      { name: "Tin Shui Wai Hospital", address: "11 Tin Tan Street, Tin Shui Wai", lat: 22.45843093273467, lng: 113.99566411972047 },
+      { name: "Tseung Kwan O Hospital", address: "No. 2 Po Ning Lane, Hang Hau", lat: 22.31828429516935, lng: 114.26966249942781 },
+      { name: "Tuen Mun Hospital", address: "23 Tsing Chung Koon Road, Tuen Mun", lat: 22.407566916465214, lng: 113.97582650184633 },
+      { name: "United Christian Hospital", address: "130 Hip Wo Street, Kwun Tong", lat: 22.32248752176316, lng: 114.22738552093507 },
+      { name: "Yan Chai Hospital", address: "7-11 Yan Chai Street, Tsuen Wan", lat: 22.369761372381014, lng: 114.11942660808565 }
+    ];
+
+    var policeStations = [
+      { name: "Central District HQ", address: "2 Chung Kong Road, Sheung Wan", lat: 22.288664584944815, lng: 114.14941906929018 },
+      { name: "Police Services Centre (Tai Kwun)", address: "Shop 01-LG205, 10 Hollywood Road, Central", lat: 22.28117429028588, lng: 114.15402173995972 },
+      { name: "Peak Sub-Division", address: "92 Peak Road", lat: 22.26440033315128, lng: 114.15531456470491 },
+      { name: "Western Division", address: "280 Des Voeux Road West", lat: 22.287592440141374, lng: 114.1406160593033 },
+      { name: "Aberdeen Division", address: "4 Wong Chuk Hang Road", lat: 22.24805136069319, lng: 114.16135489940645 },
+      { name: "Wan Chai Division", address: "No. 1 Arsenal Street, Wanchai", lat: 22.279163904332428, lng: 114.16831254959108 },
+      { name: "North Point Division", address: "343 Java Road", lat: 22.29210929083054, lng: 114.20907676219942 },
+      { name: "Chai Wan Division", address: "6 Lok Man Road, Chai Wan", lat: 22.268332142507816, lng: 114.23559844493867 },
+      { name: "Wong Tai Sin District", address: "2 Shatin Pass Road, Wong Tai Sin", lat: 22.33924954378968, lng: 114.19642210006715 },
+      { name: "Kwun Tong District", address: "9 Lei Yue Mun Road, Kwun Tong", lat: 22.30980301932403, lng: 114.23154294490816 },
+      { name: "Tsim Sha Tsui Division", address: "213 Nathan Road", lat: 22.302805206677338, lng: 114.17117714881898 },
+      { name: "Mong Kok District", address: "142 Prince Edward Road West", lat: 22.324363301039956, lng: 114.16898846626283 },
+      { name: "Kowloon City Division", address: "202 Argyle Street", lat: 22.324303752879025, lng: 114.18513000011446 },
+      { name: "Kwai Chung Division", address: "999 Kwai Chung Road, Kwai Chung", lat: 22.356972024200097, lng: 114.12934541702272 },
+      { name: "Tsuen Wan District", address: "23-27 Tsuen King Circuit", lat: 22.37684511398846, lng: 114.11010861396791 },
+      { name: "Sha Tin Division", address: "1 Wo Che Street, Sha Tin", lat: 22.386983959863603, lng: 114.192613363266 },
+      { name: "Tuen Mun Division", address: "100 Pui To Road, Tuen Mun", lat: 22.394850480853457, lng: 113.97188365459444 },
+      { name: "Yuen Long Division", address: "246 Castle Peak Road - Yuen Long", lat: 22.443874760393253, lng: 114.02285099029542 },
+      { name: "Tai Po Division", address: "4 On Po Lane, Tai Po", lat: 22.45224871243323, lng: 114.17315125465394 },
+      { name: "Airport District", address: "8 Catering Road West, Chek Lap Kok", lat: 22.31574840302754, lng: 113.93486380577087 }
+    ];
+
+    var editToggle = document.getElementById('editToggle');
+    var exportBtn = document.getElementById('exportBtn');
+    var hasChanges = false;
+    var markers = []; // { type, idx, marker }
+
+    function setHasChanges(v) {
+      hasChanges = v;
+      exportBtn.disabled = !hasChanges;
+    }
+
+    function fmt(n) {
+      return (Math.round(n * 1000000) / 1000000).toFixed(6);
+    }
+
+    function buildPopupHtml(type, item) {
+      var icon = type === 'hospital' ? '🏥' : '🚓';
+      var titleClass = type === 'hospital' ? 'hospital' : 'police';
+      var typeLabel = type === 'hospital' ? '24h A&E Hospital' : 'Police Report Room';
+      return (
+        '<div class="custom-popup">' +
+          '<div class="popup-title ' + titleClass + '">' + icon + ' ' + item.name + '</div>' +
+          '<p class="popup-info"><b>📍 Address:</b> ' + item.address + '</p>' +
+          '<p class="popup-info"><b>🧭 Lat/Lng:</b> ' + fmt(item.lat) + ', ' + fmt(item.lng) + '</p>' +
+          '<p class="popup-info"><b>Type:</b> ' + typeLabel + '</p>' +
+        '</div>'
+      );
+    }
+
+    function onMarkerMoved(type, idx, e) {
+      var ll = e.target.getLatLng();
+      var arr = type === 'hospital' ? aeHospitals : policeStations;
+      arr[idx].lat = ll.lat;
+      arr[idx].lng = ll.lng;
+      e.target.setPopupContent(buildPopupHtml(type, arr[idx]));
+      setHasChanges(true);
+    }
+
+    function setEditMode(enabled) {
+      markers.forEach(function (m) {
+        if (enabled) {
+          m.marker.dragging.enable();
+        } else {
+          m.marker.dragging.disable();
+        }
+      });
+    }
+
+    function plot() {
+      // Hospitals
+      aeHospitals.forEach(function (hospital, idx) {
+        var marker = L.marker([hospital.lat, hospital.lng], { icon: hospitalIcon, draggable: false }).addTo(map);
+        marker.bindPopup(buildPopupHtml('hospital', hospital));
+        marker.on('dragend', function (e) { onMarkerMoved('hospital', idx, e); });
+        markers.push({ type: 'hospital', idx: idx, marker: marker });
+      });
+
+      // Police stations
+      policeStations.forEach(function (station, idx) {
+        var marker = L.marker([station.lat, station.lng], { icon: policeIcon, draggable: false }).addTo(map);
+        marker.bindPopup(buildPopupHtml('police', station));
+        marker.on('dragend', function (e) { onMarkerMoved('police', idx, e); });
+        markers.push({ type: 'police', idx: idx, marker: marker });
+      });
+    }
+
+    function exportCorrected() {
+      var payload = {
+        generatedAt: new Date().toISOString(),
+        aeHospitals: aeHospitals,
+        policeStations: policeStations
+      };
+      var text = JSON.stringify(payload, null, 2);
+
+      // Try clipboard first, then fallback to download.
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          alert("Copied corrected JSON to clipboard.");
+        }).catch(function () {
+          downloadText(text, "hk-pins-corrected.json");
         });
+      } else {
+        downloadText(text, "hk-pins-corrected.json");
+      }
+    }
 
-        // Blue Square for Police Stations
-        var policeIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: "<div class='legend-icon police-icon' style='margin:0;'></div>",
-            iconSize: [19, 19],
-            iconAnchor: [9.5, 9.5]
-        });
+    function downloadText(text, filename) {
+      var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      alert("Downloaded " + filename);
+    }
 
-        // --- DATA ARRAYS ---
-        var aeHospitals = [
-            { name: "Alice Ho Miu Ling Nethersole Hospital", address: "11 Chuen On Road, Tai Po", lat: 22.4586, lng: 114.1748 },
-            { name: "Caritas Medical Centre", address: "111 Wing Hong Street, Sham Shui Po", lat: 22.3414, lng: 114.1533 },
-            { name: "Kwong Wah Hospital", address: "25 Waterloo Road, KLN", lat: 22.3144, lng: 114.1720 },
-            { name: "North District Hospital", address: "9 Po Kin Road, Sheung Shui", lat: 22.4965, lng: 114.1248 },
-            { name: "North Lantau Hospital", address: "8 Chung Yan Road, Tung Chung", lat: 22.2825, lng: 113.9393 },
-            { name: "Pamela Youde Nethersole Eastern Hospital", address: "3 Lok Man Road, Chai Wan", lat: 22.2680, lng: 114.2365 },
-            { name: "Pok Oi Hospital", address: "Au Tau, Yuen Long", lat: 22.4446, lng: 114.0421 },
-            { name: "Prince of Wales Hospital", address: "30-32 Ngan Shing Street, Shatin", lat: 22.3803, lng: 114.2016 },
-            { name: "Princess Margaret Hospital", address: "2-10 Princess Margaret Hospital Road", lat: 22.3411, lng: 114.1343 },
-            { name: "Queen Elizabeth Hospital", address: "30 Gascoigne Road, KLN", lat: 22.3088, lng: 114.1754 },
-            { name: "Queen Mary Hospital", address: "102 Pokfulam Road, HK", lat: 22.2679, lng: 114.1307 },
-            { name: "Ruttonjee Hospital", address: "266 Queen's Road East, Wan Chai", lat: 22.2754, lng: 114.1756 },
-            { name: "St. John Hospital", address: "Cheung Chau Hospital Road, Cheung Chau", lat: 22.2083, lng: 114.0318 },
-            { name: "Tin Shui Wai Hospital", address: "11 Tin Tan Street, Tin Shui Wai", lat: 22.4588, lng: 113.9958 },
-            { name: "Tseung Kwan O Hospital", address: "No. 2 Po Ning Lane, Hang Hau", lat: 22.3174, lng: 114.2656 },
-            { name: "Tuen Mun Hospital", address: "23 Tsing Chung Koon Road, Tuen Mun", lat: 22.4078, lng: 113.9767 },
-            { name: "United Christian Hospital", address: "130 Hip Wo Street, Kwun Tong", lat: 22.3224, lng: 114.2276 },
-            { name: "Yan Chai Hospital", address: "7-11 Yan Chai Street, Tsuen Wan", lat: 22.3700, lng: 114.1196 }
-        ];
+    editToggle.addEventListener('change', function () {
+      setEditMode(editToggle.checked);
+    });
+    exportBtn.addEventListener('click', exportCorrected);
 
-        var policeStations = [
-            { name: "Central District HQ", address: "2 Chung Kong Road, Sheung Wan", lat: 22.2874, lng: 114.1506 },
-            { name: "Police Services Centre (Tai Kwun)", address: "Shop 01-LG205, 10 Hollywood Road, Central", lat: 22.2815, lng: 114.1534 },
-            { name: "Peak Sub-Division", address: "92 Peak Road", lat: 22.2688, lng: 114.1481 },
-            { name: "Western Division", address: "280 Des Voeux Road West", lat: 22.2872, lng: 114.1408 },
-            { name: "Aberdeen Division", address: "4 Wong Chuk Hang Road", lat: 22.2486, lng: 114.1594 },
-            { name: "Wan Chai Division", address: "No. 1 Arsenal Street, Wanchai", lat: 22.2798, lng: 114.1685 },
-            { name: "North Point Division", address: "343 Java Road", lat: 22.2925, lng: 114.2045 },
-            { name: "Chai Wan Division", address: "6 Lok Man Road, Chai Wan", lat: 22.2646, lng: 114.2374 },
-            { name: "Wong Tai Sin District", address: "2 Shatin Pass Road, Wong Tai Sin", lat: 22.3413, lng: 114.1950 },
-            { name: "Kwun Tong District", address: "9 Lei Yue Mun Road, Kwun Tong", lat: 22.3082, lng: 114.2307 },
-            { name: "Tsim Sha Tsui Division", address: "213 Nathan Road", lat: 22.3039, lng: 114.1718 },
-            { name: "Mong Kok District", address: "142 Prince Edward Road West", lat: 22.3245, lng: 114.1678 },
-            { name: "Kowloon City Division", address: "202 Argyle Street", lat: 22.3256, lng: 114.1802 },
-            { name: "Kwai Chung Division", address: "999 Kwai Chung Road, Kwai Chung", lat: 22.3615, lng: 114.1331 },
-            { name: "Tsuen Wan District", address: "23-27 Tsuen King Circuit", lat: 22.3758, lng: 114.1118 },
-            { name: "Sha Tin Division", address: "1 Wo Che Street, Sha Tin", lat: 22.3855, lng: 114.1925 },
-            { name: "Tuen Mun Division", address: "100 Pui To Road, Tuen Mun", lat: 22.3951, lng: 113.9744 },
-            { name: "Yuen Long Division", address: "246 Castle Peak Road - Yuen Long", lat: 22.4447, lng: 114.0229 },
-            { name: "Tai Po Division", address: "4 On Po Lane, Tai Po", lat: 22.4539, lng: 114.1679 },
-            { name: "Airport District", address: "8 Catering Road West, Chek Lap Kok", lat: 22.3168, lng: 113.9366 }
-        ];
-
-        // --- PLOT HOSPITALS ---
-        aeHospitals.forEach(function(hospital) {
-            var marker = L.marker([hospital.lat, hospital.lng], {icon: hospitalIcon}).addTo(map);
-            var popupContent = '<div class="custom-popup">' +
-                '<div class="popup-title hospital">🏥 ' + hospital.name + '</div>' +
-                '<p class="popup-info"><b>Address:</b> ' + hospital.address + '</p>' +
-                '<p class="popup-info"><b>Type:</b> 24h A&E Hospital</p>' +
-                '</div>';
-            marker.bindPopup(popupContent);
-        });
-
-        // --- PLOT POLICE STATIONS ---
-        policeStations.forEach(function(station) {
-            var marker = L.marker([station.lat, station.lng], {icon: policeIcon}).addTo(map);
-            var popupContent = '<div class="custom-popup">' +
-                '<div class="popup-title police">🚓 ' + station.name + '</div>' +
-                '<p class="popup-info"><b>Address:</b> ' + station.address + '</p>' +
-                '<p class="popup-info"><b>Type:</b> Police Report Room</p>' +
-                '</div>';
-            marker.bindPopup(popupContent);
-        });
-
-    </script>
+    plot();
+    setEditMode(false);
+  </script>
 </body>
 </html>
+
